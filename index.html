@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>费用跟踪应用</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #7b4397, #dc2430);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+        
+        .wallet-info {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .wallet-address {
+            font-size: 0.9rem;
+            color: #666;
+            word-break: break-all;
+        }
+        
+        .connect-btn {
+            background-color: #4a6cf7;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .connect-btn:hover {
+            background-color: #3451b2;
+            transform: translateY(-2px);
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            border-color: #4a6cf7;
+            outline: none;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background-color: #4a6cf7;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3451b2;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #bd2130;
+            transform: translateY(-2px);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .expense-list {
+            margin-top: 20px;
+        }
+        
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+        
+        .expense-item:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .expense-info {
+            flex: 1;
+        }
+        
+        .expense-merchant {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .expense-amount {
+            font-size: 1.2rem;
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .expense-action {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #777;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .expense-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .expense-action {
+                margin-top: 10px;
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>费用跟踪应用</h1>
+            <p class="subtitle">基于Solana区块链的费用管理系统</p>
+        </header>
+        
+        <div class="wallet-info">
+            <div>
+                <p>钱包状态: <span>未连接</span></p>
+                <p class="wallet-address">钱包地址: 请连接钱包</p>
+            </div>
+            <button class="connect-btn">连接钱包</button>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">添加新费用</h2>
+            <form>
+                <div class="form-group">
+                    <label for="expense-id">费用ID</label>
+                    <input type="number" id="expense-id" placeholder="请输入费用ID">
+                </div>
+                <div class="form-group">
+                    <label for="merchant-name">商家名称</label>
+                    <input type="text" id="merchant-name" placeholder="请输入商家名称">
+                </div>
+                <div class="form-group">
+                    <label for="amount">金额 (SOL)</label>
+                    <input type="number" id="amount" placeholder="请输入金额">
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn btn-primary">创建费用</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">费用管理</h2>
+            <div class="form-group">
+                <label for="search-id">搜索费用ID</label>
+                <input type="number" id="search-id" placeholder="输入费用ID进行搜索">
+            </div>
+            <div class="actions">
+                <button type="button" class="btn btn-primary">搜索</button>
+            </div>
+            
+            <div class="expense-list">
+                <div class="expense-item">
+                    <div class="expense-info">
+                        <div class="expense-merchant">咖啡店</div>
+                        <div>ID: 1001</div>
+                    </div>
+                    <div class="expense-amount">0.05 SOL</div>
+                    <div class="expense-action">
+                        <button class="btn btn-primary btn-sm">修改</button>
+                        <button class="btn btn-danger btn-sm">删除</button>
+                    </div>
+                </div>
+                
+                <div class="expense-item">
+                    <div class="expense-info">
+                        <div class="expense-merchant">超市</div>
+                        <div>ID: 1002</div>
+                    </div>
+                    <div class="expense-amount">0.25 SOL</div>
+                    <div class="expense-action">
+                        <button class="btn btn-primary btn-sm">修改</button>
+                        <button class="btn btn-danger btn-sm">删除</button>
+                    </div>
+                </div>
+                
+                <div class="expense-item">
+                    <div class="expense-info">
+                        <div class="expense-merchant">餐厅</div>
+                        <div>ID: 1003</div>
+                    </div>
+                    <div class="expense-amount">0.15 SOL</div>
+                    <div class="expense-action">
+                        <button class="btn btn-primary btn-sm">修改</button>
+                        <button class="btn btn-danger btn-sm">删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">修改费用</h2>
+            <form>
+                <div class="form-group">
+                    <label for="modify-id">费用ID</label>
+                    <input type="number" id="modify-id" placeholder="请输入要修改的费用ID">
+                </div>
+                <div class="form-group">
+                    <label for="modify-merchant">商家名称</label>
+                    <input type="text" id="modify-merchant" placeholder="请输入新的商家名称">
+                </div>
+                <div class="form-group">
+                    <label for="modify-amount">金额 (SOL)</label>
+                    <input type="number" id="modify-amount" placeholder="请输入新的金额">
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn btn-primary">更新费用</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">删除费用</h2>
+            <form>
+                <div class="form-group">
+                    <label for="delete-id">费用ID</label>
+                    <input type="number" id="delete-id" placeholder="请输入要删除的费用ID">
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn btn-danger">删除费用</button>
+                </div>
+            </form>
+        </div>
+        
+        <footer class="footer">
+            <p>费用跟踪应用 &copy; 2023 | 基于Solana区块链技术</p>
+        </footer>
+    </div>
+</body>
+</html>
