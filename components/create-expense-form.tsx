@@ -2,82 +2,130 @@
 
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
+import { AnchorProvider, BN, Program, Wallet } from "@coral-xyz/anchor";
+import idl from "../contracts/etracker.json";
 
-interface CreateExpenseFormProps {
-  onSubmit: (expenseId: number, merchantName: string, amount: number) => Promise<boolean | undefined>;
-  loading: boolean;
-}
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
 
-export const CreateExpenseForm = ({ onSubmit, loading }: CreateExpenseFormProps) => {
-  const { connected } = useWallet();
-  
-  const [expenseId, setExpenseId] = useState<number | ''>('');
-  const [merchantName, setMerchantName] = useState('');
-  const [amount, setAmount] = useState<number | ''>('');
-  
+export const CreateExpenseForm = () => {
+  const { publicKey, signTransaction, sendTransaction } = useWallet();
+  const [merchantName, setMerchantName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!publicKey || !merchantName || !amount) return;
+
+    setLoading(true);
+    setError(null);
     
-    if (typeof expenseId === 'number' && merchantName && typeof amount === 'number') {
-      const success = await onSubmit(expenseId, merchantName, amount);
+    try {
+      // Set up connection and provider
+      const connection = new Connection(RPC_URL, 'confirmed');
+      const provider = new AnchorProvider(
+        connection,
+        { publicKey, signTransaction, sendTransaction } as unknown as Wallet,
+        { commitment: 'processed' }
+      );
       
-      if (success) {
-        // Reset form
-        setExpenseId('');
-        setMerchantName('');
-        setAmount('');
+      // Initialize program - fixed constructor
+      const program = new Program(idl as any, provider);
+      const id = new BN(Date.now());
+      
+      const [expenseAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("expense"),
+          publicKey.toBuffer(),
+          id.toArrayLike(Buffer, "le", 8),
+        ],
+        program.programId
+      );
+
+      // Simulate the transaction first to check for potential errors
+      try {
+        const simulationResponse = await program.methods
+          .initializeExpense(id, merchantName, new BN(parseInt(amount)))
+          .accounts({
+            expenseAccount,
+            authority: publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .transaction();
+        
+        // 设置费用支付者
+        simulationResponse.feePayer = publicKey;
+        
+        // Simulate transaction using the connection directly
+        await connection.simulateTransaction(simulationResponse);
+      } catch (simError: any) {
+        console.error("Transaction simulation failed:", simError);
+        throw new Error(`Transaction simulation failed: ${simError.message}`);
       }
+
+      // Execute the transaction
+      const tx = await program.methods
+        .initializeExpense(id, merchantName, new BN(parseInt(amount)))
+        .accounts({
+          expenseAccount,
+          authority: publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      // Confirm transaction
+      await connection.confirmTransaction(tx, 'finalized');
+
+      alert("支出创建成功!");
+      setMerchantName("");
+      setAmount("");
+    } catch (error: any) {
+      console.error("Error creating expense:", error);
+      setError(error.message || "创建支出失败");
+      alert(`创建支出失败: ${error.message || "未知错误"}`);
+    } finally {
+      setLoading(false);
     }
   };
-  
+
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-      <h2 className="text-2xl mb-5 pb-2 border-b border-gray-200">Add New Expense</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-5">
-          <label className="block mb-2 font-bold text-gray-600">Expense ID</label>
-          <input 
-            type="number" 
-            placeholder="Enter expense ID" 
-            className="w-full p-3 border border-gray-300 rounded focus:border-blue-500 outline-none"
-            value={expenseId}
-            onChange={(e) => setExpenseId(e.target.value ? parseInt(e.target.value) : '')}
-            disabled={loading}
-          />
+    <div className="space-y-4">
+      {error && (
+        <div className="p-4 text-red-700 bg-red-100 rounded-md">
+          {error}
         </div>
-        <div className="mb-5">
-          <label className="block mb-2 font-bold text-gray-600">Merchant Name</label>
-          <input 
-            type="text" 
-            placeholder="Enter merchant name" 
-            className="w-full p-3 border border-gray-300 rounded focus:border-blue-500 outline-none"
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium">商家名称</label>
+          <input
+            type="text"
             value={merchantName}
             onChange={(e) => setMerchantName(e.target.value)}
-            disabled={loading}
+            className="mt-1 block w-full rounded-md border p-2"
+            required
           />
         </div>
-        <div className="mb-5">
-          <label className="block mb-2 font-bold text-gray-600">Amount (SOL)</label>
-          <input 
-            type="number" 
-            step="0.000000001"
-            placeholder="Enter amount" 
-            className="w-full p-3 border border-gray-300 rounded focus:border-blue-500 outline-none"
+        <div>
+          <label className="block text-sm font-medium">金额</label>
+          <input
+            type="number"
             value={amount}
-            onChange={(e) => setAmount(e.target.value ? parseFloat(e.target.value) : '')}
-            disabled={loading}
+            onChange={(e) => setAmount(e.target.value)}
+            className="mt-1 block w-full rounded-md border p-2"
+            required
           />
         </div>
-        <div className="flex gap-3">
-          <button 
-            type="submit" 
-            className="bg-blue-500 text-white px-6 py-3 rounded font-bold hover:bg-blue-700 transition-all disabled:opacity-50"
-            disabled={loading || !connected}
-          >
-            {loading ? "Processing..." : "Create Expense"}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-md bg-blue-500 px-4 py-2 text-white disabled:bg-gray-400"
+        >
+          {loading ? "处理中..." : "创建支出"}
+        </button>
       </form>
     </div>
   );
-}; 
+};

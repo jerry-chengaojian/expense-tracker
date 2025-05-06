@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./providers";
+import AppWalletProvider from "@/components/AppWalletProvider";
+import { NotificationProvider } from "@/components/ui/notification-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-gray-50`}>
-        <Providers>{children}</Providers>
+        <NotificationProvider>
+          <AppWalletProvider>
+            {children}
+          </AppWalletProvider>
+        </NotificationProvider>
       </body>
     </html>
   );
