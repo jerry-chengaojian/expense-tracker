@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, BN, Program, Wallet } from "@coral-xyz/anchor";
 import { useNotification } from "./ui/notification-provider";
+import { useWallet } from "@solana/wallet-adapter-react";
 import idl from "../contracts/etracker.json";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
@@ -20,6 +21,7 @@ export const ExpenseList = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const { showNotification } = useNotification();
+  const { publicKey } = useWallet();
 
   // 创建只读 Provider
   const getReadonlyProvider = () => {
@@ -47,15 +49,27 @@ export const ExpenseList = () => {
     try {
       const program = getReadonlyProvider();
       
-      // Fix: Access the ExpenseAccount type instead of 'expense'
-      const allExpenses = await program.account.expenseAccount.all();
-      console.log(allExpenses);
+      let allExpenses;
+      if (publicKey) {
+        // 如果钱包已连接，只获取该用户的支出
+        allExpenses = await program.account.expenseAccount.all([
+          {
+            memcmp: {
+              offset: 8, // 跳过discriminator
+              bytes: publicKey.toBase58()
+            }
+          }
+        ]);
+      } else {
+        // 如果钱包未连接，获取所有支出
+        allExpenses = await program.account.expenseAccount.all();
+      }
+
       const serializedExpenses = allExpenses.map(exp => ({
         ...exp.account,
         publicKey: exp.publicKey.toString(),
         id: exp.account.id,
         amount: exp.account.amount,
-        // Also map authority correctly from the account structure
         authority: exp.account.owner,
         merchantName: exp.account.merchantName,
       }));
@@ -74,15 +88,23 @@ export const ExpenseList = () => {
     }
   };
 
+  // 当钱包连接状态改变时重新获取数据
   useEffect(() => {
     fetchAllExpenses();
-  }, []);
+  }, [publicKey]); // 添加 publicKey 作为依赖项
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
-      <h2 className="text-2xl font-semibold mb-6 pb-3 border-b border-gray-200 text-gray-800">
-        Expense Management
-      </h2>
+      <div className="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
+        <h2 className="text-2xl font-semibold text-gray-800">
+          Expense Management
+        </h2>
+        {publicKey && (
+          <div className="text-sm text-gray-600">
+            Showing expenses for: {publicKey.toString().slice(0, 4)}...{publicKey.toString().slice(-4)}
+          </div>
+        )}
+      </div>
       
       <div className="mt-6 rounded-lg border border-gray-200 overflow-hidden">
         {expenses.length > 0 ? (
