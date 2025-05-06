@@ -5,6 +5,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import { AnchorProvider, BN, Program, Wallet } from "@coral-xyz/anchor";
 import idl from "../contracts/etracker.json";
+import { useNotification } from "./ui/notification-provider";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
 
@@ -14,6 +15,7 @@ export const CreateExpenseForm = () => {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showNotification } = useNotification();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,13 +80,25 @@ export const CreateExpenseForm = () => {
       // Confirm transaction
       await connection.confirmTransaction(tx, 'finalized');
 
-      alert("Expense created successfully!");
+      showNotification({
+        title: "Success",
+        description: "Expense created successfully!",
+        variant: "success",
+        duration: 5000
+      });
+      
       setMerchantName("");
       setAmount("");
     } catch (error: any) {
       console.error("Error creating expense:", error);
       setError(error.message || "Failed to create expense");
-      alert(`Failed to create expense: ${error.message || "Unknown error"}`);
+      
+      showNotification({
+        title: "Error",
+        description: `Failed to create expense: ${error.message || "Unknown error"}`,
+        variant: "error",
+        duration: 8000
+      });
     } finally {
       setLoading(false);
     }
