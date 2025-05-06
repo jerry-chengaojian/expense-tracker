@@ -6,17 +6,20 @@ import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import { AnchorProvider, BN, Program, Wallet } from "@coral-xyz/anchor";
 import idl from "../contracts/etracker.json";
 import { useNotification } from "./ui/notification-provider";
+import { Expense } from "./expense-list";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
 
 interface CreateExpenseFormProps {
   onSuccess?: () => void;
+  expense?: Expense | null;
+  isEditMode?: boolean;
 }
 
-export const CreateExpenseForm = ({ onSuccess }: CreateExpenseFormProps) => {
+export const CreateExpenseForm = ({ onSuccess, expense, isEditMode }: CreateExpenseFormProps) => {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
-  const [merchantName, setMerchantName] = useState("");
-  const [amount, setAmount] = useState("");
+  const [merchantName, setMerchantName] = useState(expense?.merchantName || "");
+  const [amount, setAmount] = useState(expense?.amount.toString() || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { showNotification } = useNotification();
@@ -29,7 +32,6 @@ export const CreateExpenseForm = ({ onSuccess }: CreateExpenseFormProps) => {
     setError(null);
     
     try {
-      // Set up connection and provider
       const connection = new Connection(RPC_URL, 'confirmed');
       const provider = new AnchorProvider(
         connection,
@@ -37,64 +39,110 @@ export const CreateExpenseForm = ({ onSuccess }: CreateExpenseFormProps) => {
         { commitment: 'processed' }
       );
       
-      // Initialize program - fixed constructor
       const program = new Program(idl as any, provider);
-      const id = new BN(Date.now());
       
-      const [expenseAccount] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("expense"),
-          publicKey.toBuffer(),
-          id.toArrayLike(Buffer, "le", 8),
-        ],
-        program.programId
-      );
+      if (isEditMode && expense) {
+        // Handle edit expense
+        const [expenseAccount] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("expense"),
+            publicKey.toBuffer(),
+            expense.id.toArrayLike(Buffer, "le", 8),
+          ],
+          program.programId
+        );
 
-      // Simulate the transaction first to check for potential errors
-      try {
-        const simulationResponse = await program.methods
+        // Simulate the modification transaction
+        try {
+          const simulationResponse = await program.methods
+            .modifyExpense(expense.id, merchantName, new BN(parseInt(amount)))
+            .accounts({
+              expenseAccount,
+              authority: publicKey,
+            })
+            .transaction();
+          
+          simulationResponse.feePayer = publicKey;
+          await connection.simulateTransaction(simulationResponse);
+        } catch (simError: any) {
+          console.error("Transaction simulation failed:", simError);
+          throw new Error(`Transaction simulation failed: ${simError.message}`);
+        }
+
+        // Execute the modification
+        const tx = await program.methods
+          .modifyExpense(expense.id, merchantName, new BN(parseInt(amount)))
+          .accounts({
+            expenseAccount,
+            authority: publicKey,
+          })
+          .rpc();
+
+        await connection.confirmTransaction(tx, 'finalized');
+        
+        showNotification({
+          title: "Success",
+          description: "Expense updated successfully!",
+          variant: "success",
+          duration: 5000
+        });
+      } else {
+        // Existing create expense logic
+        const id = new BN(Date.now());
+        
+        const [expenseAccount] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("expense"),
+            publicKey.toBuffer(),
+            id.toArrayLike(Buffer, "le", 8),
+          ],
+          program.programId
+        );
+
+        // Simulate the transaction first to check for potential errors
+        try {
+          const simulationResponse = await program.methods
+            .initializeExpense(id, merchantName, new BN(parseInt(amount)))
+            .accounts({
+              expenseAccount,
+              authority: publicKey,
+              systemProgram: SystemProgram.programId,
+            })
+            .transaction();
+          
+          // 设置费用支付者
+          simulationResponse.feePayer = publicKey;
+          
+          // Simulate transaction using the connection directly
+          await connection.simulateTransaction(simulationResponse);
+        } catch (simError: any) {
+          console.error("Transaction simulation failed:", simError);
+          throw new Error(`Transaction simulation failed: ${simError.message}`);
+        }
+
+        // Execute the transaction
+        const tx = await program.methods
           .initializeExpense(id, merchantName, new BN(parseInt(amount)))
           .accounts({
             expenseAccount,
             authority: publicKey,
             systemProgram: SystemProgram.programId,
           })
-          .transaction();
+          .rpc();
         
-        // 设置费用支付者
-        simulationResponse.feePayer = publicKey;
-        
-        // Simulate transaction using the connection directly
-        await connection.simulateTransaction(simulationResponse);
-      } catch (simError: any) {
-        console.error("Transaction simulation failed:", simError);
-        throw new Error(`Transaction simulation failed: ${simError.message}`);
+        // Confirm transaction
+        await connection.confirmTransaction(tx, 'finalized');
+
+        showNotification({
+          title: "Success",
+          description: "Expense created successfully!",
+          variant: "success",
+          duration: 5000
+        });
       }
-
-      // Execute the transaction
-      const tx = await program.methods
-        .initializeExpense(id, merchantName, new BN(parseInt(amount)))
-        .accounts({
-          expenseAccount,
-          authority: publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-      
-      // Confirm transaction
-      await connection.confirmTransaction(tx, 'finalized');
-
-      showNotification({
-        title: "Success",
-        description: "Expense created successfully!",
-        variant: "success",
-        duration: 5000
-      });
       
       setMerchantName("");
       setAmount("");
-      
-      // Call onSuccess callback if provided
       onSuccess?.();
       
     } catch (error: any) {
@@ -145,7 +193,7 @@ export const CreateExpenseForm = ({ onSuccess }: CreateExpenseFormProps) => {
           disabled={loading}
           className="rounded-md bg-blue-500 px-4 py-2 text-white disabled:bg-gray-400"
         >
-          {loading ? "Processing..." : "Create Expense"}
+          {loading ? "Processing..." : isEditMode ? "Update Expense" : "Create Expense"}
         </button>
       </form>
     </div>

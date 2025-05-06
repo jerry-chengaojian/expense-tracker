@@ -10,7 +10,7 @@ import { CreateExpenseForm } from "./create-expense-form";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
 
-interface Expense {
+export interface Expense {
   id: BN;
   merchantName: string;
   amount: BN;
@@ -22,6 +22,8 @@ export const ExpenseList = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const { showNotification } = useNotification();
   const { publicKey } = useWallet();
 
@@ -95,6 +97,12 @@ export const ExpenseList = () => {
     fetchAllExpenses();
   }, [publicKey]); // 添加 publicKey 作为依赖项
 
+  const handleEditClick = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setIsEditMode(true);
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
       <div className="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
@@ -111,24 +119,34 @@ export const ExpenseList = () => {
         </div>
       </div>
       
-      {/* Modal */}
+      {/* Updated Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50">
           <div className="bg-white/90 backdrop-blur-md rounded-lg p-6 w-full max-w-md relative shadow-xl">
             <button
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false);
+                setIsEditMode(false);
+                setSelectedExpense(null);
+              }}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h3 className="text-lg font-semibold mb-4">Create New Expense</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              {isEditMode ? "Edit Expense" : "Create New Expense"}
+            </h3>
             <CreateExpenseForm 
               onSuccess={() => {
                 setIsModalOpen(false);
+                setIsEditMode(false);
+                setSelectedExpense(null);
                 fetchAllExpenses();
               }}
+              expense={selectedExpense}
+              isEditMode={isEditMode}
             />
           </div>
         </div>
@@ -160,8 +178,8 @@ export const ExpenseList = () => {
                 </div>
                 <div className="col-span-2 flex justify-end gap-2">
                   <button 
-                    className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-md text-sm font-medium hover:bg-blue-200 transition-all disabled:opacity-50"
-                    disabled
+                    className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-md text-sm font-medium hover:bg-blue-200 transition-all"
+                    onClick={() => handleEditClick(expense)}
                   >
                     Edit
                   </button>
