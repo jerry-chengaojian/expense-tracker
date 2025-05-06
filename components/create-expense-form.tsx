@@ -9,7 +9,11 @@ import { useNotification } from "./ui/notification-provider";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
 
-export const CreateExpenseForm = () => {
+interface CreateExpenseFormProps {
+  onSuccess?: () => void;
+}
+
+export const CreateExpenseForm = ({ onSuccess }: CreateExpenseFormProps) => {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
   const [merchantName, setMerchantName] = useState("");
   const [amount, setAmount] = useState("");
@@ -89,6 +93,10 @@ export const CreateExpenseForm = () => {
       
       setMerchantName("");
       setAmount("");
+      
+      // Call onSuccess callback if provided
+      onSuccess?.();
+      
     } catch (error: any) {
       console.error("Error creating expense:", error);
       setError(error.message || "Failed to create expense");

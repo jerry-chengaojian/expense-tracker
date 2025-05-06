@@ -124,7 +124,12 @@ export const ExpenseList = () => {
               </svg>
             </button>
             <h3 className="text-lg font-semibold mb-4">Create New Expense</h3>
-            <CreateExpenseForm />
+            <CreateExpenseForm 
+              onSuccess={() => {
+                setIsModalOpen(false);
+                fetchAllExpenses();
+              }}
+            />
           </div>
         </div>
       )}

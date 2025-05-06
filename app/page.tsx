@@ -25,12 +25,7 @@ export default function Home() {
     <div className="px-4 sm:px-8 py-8">
       <div className="container mx-auto">
         <Header />
-        
         <WalletStatus />
-                
-        <CreateExpenseForm 
-        />
-
         <ExpenseList />
         
         {/* <ExpenseList 
