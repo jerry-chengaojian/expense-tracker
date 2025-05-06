@@ -6,6 +6,7 @@ import { AnchorProvider, BN, Program, Wallet } from "@coral-xyz/anchor";
 import { useNotification } from "./ui/notification-provider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import idl from "../contracts/etracker.json";
+import { CreateExpenseForm } from "./create-expense-form";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
 
@@ -20,6 +21,7 @@ interface Expense {
 export const ExpenseList = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { showNotification } = useNotification();
   const { publicKey } = useWallet();
 
@@ -99,13 +101,34 @@ export const ExpenseList = () => {
         <h2 className="text-2xl font-semibold text-gray-800">
           Expense Management
         </h2>
-        {publicKey && (
-          <div className="text-sm text-gray-600">
-            Showing expenses for: {publicKey.toString().slice(0, 4)}...{publicKey.toString().slice(-4)}
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+          >
+            Create Expense
+          </button>
+        </div>
       </div>
       
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg p-6 w-full max-w-md relative shadow-xl">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="text-lg font-semibold mb-4">Create New Expense</h3>
+            <CreateExpenseForm />
+          </div>
+        </div>
+      )}
+
       <div className="mt-6 rounded-lg border border-gray-200 overflow-hidden">
         {expenses.length > 0 ? (
           <div>
