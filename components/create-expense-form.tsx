@@ -78,13 +78,13 @@ export const CreateExpenseForm = () => {
       // Confirm transaction
       await connection.confirmTransaction(tx, 'finalized');
 
-      alert("支出创建成功!");
+      alert("Expense created successfully!");
       setMerchantName("");
       setAmount("");
     } catch (error: any) {
       console.error("Error creating expense:", error);
-      setError(error.message || "创建支出失败");
-      alert(`创建支出失败: ${error.message || "未知错误"}`);
+      setError(error.message || "Failed to create expense");
+      alert(`Failed to create expense: ${error.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -99,7 +99,7 @@ export const CreateExpenseForm = () => {
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">商家名称</label>
+          <label className="block text-sm font-medium">Merchant Name</label>
           <input
             type="text"
             value={merchantName}
@@ -109,7 +109,7 @@ export const CreateExpenseForm = () => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium">金额</label>
+          <label className="block text-sm font-medium">Amount</label>
           <input
             type="number"
             value={amount}
@@ -123,7 +123,7 @@ export const CreateExpenseForm = () => {
           disabled={loading}
           className="rounded-md bg-blue-500 px-4 py-2 text-white disabled:bg-gray-400"
         >
-          {loading ? "处理中..." : "创建支出"}
+          {loading ? "Processing..." : "Create Expense"}
         </button>
       </form>
     </div>
