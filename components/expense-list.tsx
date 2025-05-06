@@ -7,6 +7,7 @@ import { useNotification } from "./ui/notification-provider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import idl from "../contracts/etracker.json";
 import { CreateExpenseForm } from "./create-expense-form";
+import { DeleteExpenseModal } from "./delete-expense-modal";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
 
@@ -26,6 +27,8 @@ export const ExpenseList = () => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const { showNotification } = useNotification();
   const { publicKey } = useWallet();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
   // 创建只读 Provider
   const getReadonlyProvider = () => {
@@ -103,6 +106,11 @@ export const ExpenseList = () => {
     setIsModalOpen(true);
   };
 
+  const handleDeleteClick = (expense: Expense) => {
+    setExpenseToDelete(expense);
+    setIsDeleteModalOpen(true);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
       <div className="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
@@ -152,6 +160,22 @@ export const ExpenseList = () => {
         </div>
       )}
 
+      {/* Delete Modal */}
+      {isDeleteModalOpen && expenseToDelete && (
+        <DeleteExpenseModal
+          expense={expenseToDelete}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setExpenseToDelete(null);
+          }}
+          onSuccess={() => {
+            setIsDeleteModalOpen(false);
+            setExpenseToDelete(null);
+            fetchAllExpenses();
+          }}
+        />
+      )}
+
       <div className="mt-6 rounded-lg border border-gray-200 overflow-hidden">
         {expenses.length > 0 ? (
           <div>
@@ -184,8 +208,8 @@ export const ExpenseList = () => {
                     Edit
                   </button>
                   <button 
-                    className="bg-red-100 text-red-700 px-2.5 py-1 rounded-md text-sm font-medium hover:bg-red-200 transition-all disabled:opacity-50"
-                    disabled
+                    className="bg-red-100 text-red-700 px-2.5 py-1 rounded-md text-sm font-medium hover:bg-red-200 transition-all"
+                    onClick={() => handleDeleteClick(expense)}
                   >
                     Delete
                   </button>
