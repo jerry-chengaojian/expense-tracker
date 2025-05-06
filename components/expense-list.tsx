@@ -56,7 +56,7 @@ export const ExpenseList = () => {
       let allExpenses;
       if (publicKey) {
         // 如果钱包已连接，只获取该用户的支出
-        allExpenses = await program.account.expenseAccount.all([
+        allExpenses = await (program.account as any).expenseAccount.all([
           {
             memcmp: {
               offset: 8, // 跳过discriminator
@@ -66,10 +66,10 @@ export const ExpenseList = () => {
         ]);
       } else {
         // 如果钱包未连接，获取所有支出
-        allExpenses = await program.account.expenseAccount.all();
+        allExpenses = await (program.account as any).expenseAccount.all();
       }
 
-      const serializedExpenses = allExpenses.map(exp => ({
+      const serializedExpenses = allExpenses.map((exp: any) => ({
         ...exp.account,
         publicKey: exp.publicKey.toString(),
         id: exp.account.id,
