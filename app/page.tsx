@@ -30,6 +30,8 @@ export default function Home() {
                 
         <CreateExpenseForm 
         />
+
+        <ExpenseList />
         
         {/* <ExpenseList 
           expenses={expenses}

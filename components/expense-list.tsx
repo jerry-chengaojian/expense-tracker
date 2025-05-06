@@ -1,99 +1,97 @@
 "use client";
 
-import { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { Expense } from "@/lib/types";
-
-interface ExpenseListProps {
-  expenses: Expense[];
-  loading: boolean;
-  onSearch: (searchId: number) => Promise<void>;
-  onRefresh: () => Promise<void>;
-  onEdit: (expense: Expense) => void;
-  onDelete: (id: number) => void;
-}
-
-export const ExpenseList = ({ 
-  expenses, 
-  loading, 
-  onSearch, 
-  onRefresh, 
-  onEdit, 
-  onDelete 
-}: ExpenseListProps) => {
-  const { connected } = useWallet();
-  const [searchId, setSearchId] = useState<number | ''>('');
-  
-  const handleSearch = async () => {
-    if (typeof searchId === 'number') {
-      await onSearch(searchId);
-    } else {
-      await onRefresh();
+export const ExpenseList = () => {
+  const mockExpenses = [
+    {
+      id: 1,
+      merchant_name: "Amazon",
+      amount: 0.5
+    },
+    {
+      id: 2,
+      merchant_name: "Starbucks",
+      amount: 0.1
+    },
+    {
+      id: 3,
+      merchant_name: "Uber",
+      amount: 0.3
     }
-  };
-  
+  ];
+
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-      <h2 className="text-2xl mb-5 pb-2 border-b border-gray-200">Expense Management</h2>
-      <div className="mb-5">
-        <label className="block mb-2 font-bold text-gray-600">Search Expense ID</label>
-        <input 
-          type="number" 
-          placeholder="Enter expense ID to search" 
-          className="w-full p-3 border border-gray-300 rounded focus:border-blue-500 outline-none"
-          value={searchId}
-          onChange={(e) => setSearchId(e.target.value ? parseInt(e.target.value) : '')}
-          disabled={loading}
-        />
-      </div>
-      <div className="flex gap-3 mb-5">
-        <button 
-          type="button" 
-          className="bg-blue-500 text-white px-6 py-3 rounded font-bold hover:bg-blue-700 transition-all disabled:opacity-50"
-          onClick={handleSearch}
-          disabled={loading || !connected}
-        >
-          {loading ? "Searching..." : "Search"}
-        </button>
-        <button 
-          type="button" 
-          className="bg-gray-500 text-white px-6 py-3 rounded font-bold hover:bg-gray-700 transition-all disabled:opacity-50"
-          onClick={onRefresh}
-          disabled={loading || !connected}
-        >
-          Refresh All
-        </button>
+    <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+      <h2 className="text-2xl font-semibold mb-6 pb-3 border-b border-gray-200 text-gray-800">Expense Management</h2>
+      
+      {/* Search Section */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <label className="block mb-2 text-sm font-medium text-gray-700">Search Expense ID</label>
+          <input 
+            type="number" 
+            placeholder="Enter expense ID to search" 
+            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            disabled
+          />
+        </div>
+        <div className="flex items-end gap-2 mt-2 md:mt-0">
+          <button 
+            type="button" 
+            className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-all disabled:opacity-50 focus:ring-2 focus:ring-blue-300 shadow-sm"
+            disabled
+          >
+            Search
+          </button>
+          <button 
+            type="button" 
+            className="bg-gray-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-700 transition-all disabled:opacity-50 focus:ring-2 focus:ring-gray-300 shadow-sm"
+            disabled
+          >
+            Refresh All
+          </button>
+        </div>
       </div>
       
-      <div className="mt-5">
-        {loading ? (
-          <div className="text-center p-4">Loading expenses...</div>
-        ) : expenses.length > 0 ? (
-          expenses.map((expense) => (
-            <div key={expense.id} className="flex justify-between items-center p-4 border-b border-gray-200 hover:bg-gray-50 transition-all">
-              <div className="flex-1">
-                <div className="font-bold text-lg">{expense.merchant_name}</div>
-                <div>ID: {expense.id}</div>
-              </div>
-              <div className="text-red-500 text-xl font-bold">{expense.amount} SOL</div>
-              <div className="flex gap-2">
-                <button 
-                  className="bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold"
-                  onClick={() => onEdit(expense)}
-                >
-                  Edit
-                </button>
-                <button 
-                  className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold"
-                  onClick={() => onDelete(expense.id)}
-                >
-                  Delete
-                </button>
-              </div>
+      {/* Expenses List */}
+      <div className="mt-6 rounded-lg border border-gray-200 overflow-hidden">
+        {mockExpenses.length > 0 ? (
+          <div>
+            {/* List Header */}
+            <div className="bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 border-b border-gray-200 grid grid-cols-12">
+              <div className="col-span-5">Merchant</div>
+              <div className="col-span-3">ID</div>
+              <div className="col-span-2 text-right">Amount</div>
+              <div className="col-span-2 text-right">Actions</div>
             </div>
-          ))
+            
+            {/* List Items */}
+            {mockExpenses.map((expense) => (
+              <div 
+                key={expense.id} 
+                className="grid grid-cols-12 items-center px-4 py-3 border-b border-gray-200 hover:bg-gray-50 transition-all"
+              >
+                <div className="col-span-5 font-medium text-gray-800">{expense.merchant_name}</div>
+                <div className="col-span-3 text-gray-600">#{expense.id}</div>
+                <div className="col-span-2 text-right font-medium text-red-600">{expense.amount} SOL</div>
+                <div className="col-span-2 flex justify-end gap-2">
+                  <button 
+                    className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-md text-sm font-medium hover:bg-blue-200 transition-all disabled:opacity-50"
+                    disabled
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    className="bg-red-100 text-red-700 px-2.5 py-1 rounded-md text-sm font-medium hover:bg-red-200 transition-all disabled:opacity-50"
+                    disabled
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="text-center p-4 text-gray-500">No expenses found</div>
+          <div className="text-center py-8 text-gray-500">No expenses found</div>
         )}
       </div>
     </div>
