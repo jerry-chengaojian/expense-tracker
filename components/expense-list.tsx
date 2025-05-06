@@ -1,78 +1,113 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { AnchorProvider, BN, Program, Wallet } from "@coral-xyz/anchor";
+import { useNotification } from "./ui/notification-provider";
+import idl from "../contracts/etracker.json";
+
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=918a0709-2f7b-441d-a1ee-66f3eebe98f8';
+
+interface Expense {
+  id: BN;
+  merchantName: string;
+  amount: BN;
+  authority: PublicKey;
+  publicKey: string;
+}
+
 export const ExpenseList = () => {
-  const mockExpenses = [
-    {
-      id: 1,
-      merchant_name: "Amazon",
-      amount: 0.5
-    },
-    {
-      id: 2,
-      merchant_name: "Starbucks",
-      amount: 0.1
-    },
-    {
-      id: 3,
-      merchant_name: "Uber",
-      amount: 0.3
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { showNotification } = useNotification();
+
+  // 创建只读 Provider
+  const getReadonlyProvider = () => {
+    const connection = new Connection(RPC_URL, 'confirmed');
+    const dummyWallet = {
+      publicKey: PublicKey.default,
+      signTransaction: async () => {
+        throw new Error('Read-only provider cannot sign transactions.');
+      },
+      signAllTransactions: async () => {
+        throw new Error('Read-only provider cannot sign transactions.');
+      },
+    };
+
+    const provider = new AnchorProvider(connection, dummyWallet as unknown as Wallet, {
+      commitment: 'processed',
+    });
+
+    return new Program(idl as any, provider);
+  };
+
+  // 获取所有支出记录
+  const fetchAllExpenses = async () => {
+    setLoading(true);
+    try {
+      const program = getReadonlyProvider();
+      
+      // Fix: Access the ExpenseAccount type instead of 'expense'
+      const allExpenses = await program.account.expenseAccount.all();
+      console.log(allExpenses);
+      const serializedExpenses = allExpenses.map(exp => ({
+        ...exp.account,
+        publicKey: exp.publicKey.toString(),
+        id: exp.account.id,
+        amount: exp.account.amount,
+        // Also map authority correctly from the account structure
+        authority: exp.account.owner,
+        merchantName: exp.account.merchantName,
+      }));
+
+      setExpenses(serializedExpenses);
+    } catch (error: any) {
+      console.error("Error fetching expenses:", error);
+      showNotification({
+        title: "Error",
+        description: `Failed to fetch expenses: ${error.message}`,
+        variant: "error",
+        duration: 5000
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchAllExpenses();
+  }, []);
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
-      <h2 className="text-2xl font-semibold mb-6 pb-3 border-b border-gray-200 text-gray-800">Expense Management</h2>
+      <h2 className="text-2xl font-semibold mb-6 pb-3 border-b border-gray-200 text-gray-800">
+        Expense Management
+      </h2>
       
-      {/* Search Section */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <label className="block mb-2 text-sm font-medium text-gray-700">Search Expense ID</label>
-          <input 
-            type="number" 
-            placeholder="Enter expense ID to search" 
-            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            disabled
-          />
-        </div>
-        <div className="flex items-end gap-2 mt-2 md:mt-0">
-          <button 
-            type="button" 
-            className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-all disabled:opacity-50 focus:ring-2 focus:ring-blue-300 shadow-sm"
-            disabled
-          >
-            Search
-          </button>
-          <button 
-            type="button" 
-            className="bg-gray-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-700 transition-all disabled:opacity-50 focus:ring-2 focus:ring-gray-300 shadow-sm"
-            disabled
-          >
-            Refresh All
-          </button>
-        </div>
-      </div>
-      
-      {/* Expenses List */}
       <div className="mt-6 rounded-lg border border-gray-200 overflow-hidden">
-        {mockExpenses.length > 0 ? (
+        {expenses.length > 0 ? (
           <div>
-            {/* List Header */}
             <div className="bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 border-b border-gray-200 grid grid-cols-12">
-              <div className="col-span-5">Merchant</div>
               <div className="col-span-3">ID</div>
+              <div className="col-span-5">Merchant</div>
               <div className="col-span-2 text-right">Amount</div>
               <div className="col-span-2 text-right">Actions</div>
             </div>
             
-            {/* List Items */}
-            {mockExpenses.map((expense) => (
+            {expenses.map((expense) => (
               <div 
-                key={expense.id} 
+                key={expense.publicKey}
                 className="grid grid-cols-12 items-center px-4 py-3 border-b border-gray-200 hover:bg-gray-50 transition-all"
               >
-                <div className="col-span-5 font-medium text-gray-800">{expense.merchant_name}</div>
-                <div className="col-span-3 text-gray-600">#{expense.id}</div>
-                <div className="col-span-2 text-right font-medium text-red-600">{expense.amount} SOL</div>
+                <div className="col-span-3 text-gray-600">
+                  #{expense.id.toString()}
+                </div>
+                <div className="col-span-5 font-medium text-gray-800">
+                  {expense.merchantName}
+                </div>
+                <div className="col-span-2 text-right font-medium text-red-600">
+                  {expense.amount.toString()}
+                </div>
                 <div className="col-span-2 flex justify-end gap-2">
                   <button 
                     className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-md text-sm font-medium hover:bg-blue-200 transition-all disabled:opacity-50"
@@ -91,7 +126,9 @@ export const ExpenseList = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">No expenses found</div>
+          <div className="text-center py-8 text-gray-500">
+            {loading ? "Loading expenses..." : "No expenses found"}
+          </div>
         )}
       </div>
     </div>
