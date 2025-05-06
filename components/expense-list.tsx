@@ -62,7 +62,7 @@ export const ExpenseList = () => {
         allExpenses = await (program.account as any).expenseAccount.all([
           {
             memcmp: {
-              offset: 8, // 跳过discriminator
+              offset: 8 + 8, // 跳过discriminator(8字节)和id字段(8字节)
               bytes: publicKey.toBase58()
             }
           }
